@@ -20,15 +20,16 @@ typedef enum lfsm_states_t;
 typedef enum lfsm_events_t;
 
 typedef struct lfsm_state_functions_t {
+    lfsm_states_t state;
     void (*on_entry) ( lfsm_t );
     void (*on_run  ) ( lfsm_t );
     void (*on_exit ) ( lfsm_t );
 } lfsm_state_functions_t;
 
 typedef struct lfsm_transitions_t {
-    uint8_t current_state;
-    uint8_t event;
-    uint8_t next_state;
+    lfsm_states_t current_state;
+    lfsm_events_t event;
+    lfsm_states_t next_state;
 } lfsm_transitions_t;
 
 
