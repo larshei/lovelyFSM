@@ -1,5 +1,4 @@
 #include "lovely_fsm.h"
-#include "buf_buffer.h"
 
 /* -----------------------------------------------------------------------------
  * Managed internally, user needs lfsm_context_t (pointer) only
