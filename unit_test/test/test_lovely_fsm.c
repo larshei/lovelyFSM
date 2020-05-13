@@ -1,5 +1,5 @@
 #include "unity.h"
-#include "../../lovely_fsm.h"
+#include "../../src/lovely_fsm.h"
 
 // -------- HELPERS ----------
 
