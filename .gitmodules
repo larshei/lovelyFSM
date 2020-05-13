@@ -1,0 +1,3 @@
+[submodule "buffer_c"]
+	path = buffer_c
+	url = https://github.com/larshei/buffer_c
