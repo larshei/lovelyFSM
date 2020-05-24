@@ -1,10 +1,7 @@
 #ifndef __LOVELY_FSM_H
 #define __LOVELY_FSM_H
 
-// move these to lfsm_config.h
-#define LFSM_MAX_COUNT      5
-#define LFSM_EV_QUEUE_SIZE  5
-
+#define lfsm_init(transition_table, state_table) lfsm_init_func()
 // --------------------------------------------
 #include <stdint.h>
 #include "lovely_fsm_config.h"
@@ -16,22 +13,21 @@ typedef struct lfsm_context_t* lfsm_t;
 /* -----------------------------------------------------------------------------
  *  To be defined by the user
  * -------------------------------------------------------------------------- */
-typedef enum lfsm_states_t;
-typedef enum lfsm_events_t;
-
 typedef struct lfsm_state_functions_t {
-    lfsm_states_t state;
+    int state;
     void (*on_entry) ( lfsm_t );
     void (*on_run  ) ( lfsm_t );
     void (*on_exit ) ( lfsm_t );
 } lfsm_state_functions_t;
 
 typedef struct lfsm_transitions_t {
-    lfsm_states_t current_state;
-    lfsm_events_t event;
-    lfsm_states_t next_state;
+    int current_state;
+    int event;
+    int (*condition)( lfsm_t );
+    int next_state;
 } lfsm_transitions_t;
 
+lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event);
 
 /* -----------------------------------------------------------------------------
  *  
