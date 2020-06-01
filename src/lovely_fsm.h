@@ -27,8 +27,6 @@ typedef struct lfsm_transitions_t {
     int next_state;
 } lfsm_transitions_t;
 
-lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event);
-
 /* -----------------------------------------------------------------------------
  *  
  * -------------------------------------------------------------------------- */
@@ -37,5 +35,26 @@ typedef enum lfsm_return_t {
     LFSM_MORE_QUEUED,
     LFSM_ERROR,
 } lfsm_return_t;
+
+/* -----------------------------------------------------------------------------
+ *  
+ * -------------------------------------------------------------------------- */
+typedef buffer_handle_type* (*lfsm_buf_init_func_t)(DATA_TYPE*);
+typedef uint8_t (*lfsm_buf_is_full_func_t)(buffer_handle_type*);
+typedef uint8_t (*lfsm_buf_is_empty_func_t)(buffer_handle_type*);
+typedef DATA_TYPE* (*lfsm_buf_read_func_t)(buffer_handle_type*);
+typedef uint8_t (*lfsm_buf_add_func_t)(buffer_handle_type*);
+
+typedef struct lfsm_buf_callbacks_t {
+    lfsm_buf_init_func_t     init;
+    lfsm_buf_add_func_t      add;
+    lfsm_buf_read_func_t     read;
+    lfsm_buf_is_empty_func_t is_empty;
+    lfsm_buf_is_full_func_t  is_full;
+ } lfsm_buf_callbacks_t;
+
+lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event);
+
+
 
 #endif // __LOVELY_FSM_H

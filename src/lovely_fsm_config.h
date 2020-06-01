@@ -1,7 +1,7 @@
 #ifndef __LOVELY_FSM_CONFIG_H
 #define __LOVELY_FSM_CONFIG_H
 
-#include "../buffer_c/buf_buffer.h"
+#include "../lovelyBuffer/buf_buffer.h"
 
 // --- maximum number of state machines (static memory allocation!) ---
 #define LFSM_MAX_COUNT          3
@@ -17,16 +17,12 @@
 #define OPTIMIZE_FOR_SPEED      1
 
 // --- buffer functions ---
-#define USE_BUFFER_C_LIB        1
+#define USE_LOVELY_BUFFER       1
 
-#if (USE_BUFFER_C_LIB)
+#if (USE_LOVELY_BUFFER)
 // you can use the integrated buffer library ...
 #define buffer_handle_type                   buf_buffer_t
-#define add_to_buffer(buffer_handle, value)  buf_add_element(buffer_handle, value)
-#define read_from_buffer(buffer_handle)      buf_read_element(buffer_handle)
-#define buffer_full(buffer_handle)           buf_is_full(buffer_handle)
-#define buffer_empty(buffer_handle)          buf_is_empty(buffer_handle)
-#define get_buffer(handle, data_array)       buf_claim_and_init_buffer(data_array)
+
 #define BUFFER_OK   BUF_OK
 #else
 // ... or provide your own buffer implementation!
