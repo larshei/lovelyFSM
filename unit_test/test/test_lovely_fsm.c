@@ -6,6 +6,7 @@
 
 #include "unity.h"
 #include "../../src/lovely_fsm.h"
+#include "../../lovelyBuffer/buf_buffer.h"
 
 // -------- User data structures -------------------------------------
 enum {
@@ -35,11 +36,12 @@ my_data_t my_data;
 // 5. write the state functions (return fsm_return_t) and have them return
 //    FSM_OK. Returning anything else will trigger a callback function that
 //    will help you debug what was wrong. (callback not implemented yet)
-// 6. Use lfsm_init() to create a state machine context with the arrays from 2.
-//    and 3. and user data. The maximum number of state machine instances is
-//    defined in the config file as LFSM_MAX_COUNT.
-// 7. Add events using lfsm_add(), then run the state machine using lfsm_run().
-// 8. To deinitalize the state machine, use lfsm_deinit().
+// 6. Set buffer callback functions in a lfsm_buf_callbacks_t
+// 7. Use lfsm_init() to create a state machine context with the arrays from 2.
+//    and 3., callbacks from 6. and user data. The maximum number of state
+//    machine instances is defined in the config file as LFSM_MAX_COUNT.
+// 8. Add events using lfsm_add(), then run the state machine using lfsm_run().
+// 9. To deinitalize the state machine, use lfsm_deinit().
 
 // these enums are just for convenience / readability
 enum events {
@@ -65,7 +67,6 @@ lfsm_return_t red_led_off(lfsm_t context);
 // -------------------------------------------------------------------------
 lfsm_transitions_t transition_table[] = {
     { ST_ALARM, EV_BUTTON_PRESS , temperature_too_high, ST_ALARM },
-    { ST_ALARM, EV_BUTTON_PRESS , temperature_okay    , ST_IDLE  },
     { ST_IDLE , EV_BUTTON_PRESS , always              , ST_IDLE  },
     { ST_IDLE , EV_TEMP_OVER    , always              , ST_ALARM },
 };
@@ -122,17 +123,21 @@ lfsm_return_t red_led_off(lfsm_t context) {
     return LFSM_OK;
 }
 // -------------------------------------------------------------------------
-
+lfsm_buf_callbacks_t buffer_callbacks;
+lfsm_t lfsm_handler;
 
 // -------- UNITY SETUP AND TEARDOWN CALLBACKS ----------
 void setUp(void) {
     my_data.red_led = LED_OFF;
     my_data.green_led = LED_OFF;
-    lfsm_init(transition_table, state_func_table, my_data);
+    buf_init_system();
+    lfsm_set_lovely_buf_callbacks(&buffer_callbacks);
+    lfsm_handler = lfsm_init(transition_table, state_func_table, buffer_callbacks, my_data);
+    TEST_ASSERT_NOT_NULL(lfsm_handler);
 }
 
 void tearDown(void) {
-
+    lfsm_deinit();
 }
 
 void test_ignore(void) {
