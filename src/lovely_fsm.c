@@ -1,4 +1,9 @@
 #include "lovely_fsm.h"
+#include <stdlib.h>
+
+#ifdef TEST
+#include "lovely_fsm_debug.c"
+#endif
 
 /* -----------------------------------------------------------------------------
  * Managed internally, user needs lfsm_context_t (pointer) only
@@ -10,6 +15,7 @@ typedef struct lfsm_context_t {
     uint8_t event_number_min;
     uint8_t event_number_max;
     uint8_t transition_count;
+    uint8_t state_func_count;
     uint8_t current_state;
     uint8_t previous_step_state;
     uint8_t event_queue_buffer[LFSM_EV_QUEUE_SIZE];
@@ -25,7 +31,7 @@ typedef struct lfsm_system_t {
     lfsm_context_t contexts[LFSM_MAX_COUNT];
 } lfsm_system_t;
 
-lfsm_system_t system;
+lfsm_system_t lfsm_system;
 
 // public functions
 lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event);
@@ -34,15 +40,15 @@ lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event);
 lfsm_t lfsm_get_unused_context();
 lfsm_t lfsm_init_func();
 void lfsm_bubble_sort_list(lfsm_t context);
-void lfsm_find_state_event_max_min(lfsm_t context);
-void lfsm_create_lookup_table(lfsm_t context);
+void lfsm_find_state_event_min_max(lfsm_t context);
+lfsm_return_t lfsm_create_lookup_table(lfsm_t context);
 void lfsm_fill_lookup_table(lfsm_t context);
 
 // ----------------------------------------------------------------------------
 lfsm_t lfsm_get_unused_context() {
     int index = 0;
     for (int index = 0 ; index < LFSM_MAX_COUNT ; index++) {
-        if (!(system.contexts[index].is_active)) return &system.contexts[index];
+        if (!(lfsm_system.contexts[index].is_active)) return &lfsm_system.contexts[index];
     }
     return NULL;
 }
@@ -57,28 +63,47 @@ lfsm_return_t lfsm_initialize_buffers(lfsm_t fsm) {
 #else
     fsm->buffer_handle = get_buffer(fsm->event_queue_buffer, LFSM_EV_QUEUE_SIZE, sizeof(int));
 #endif
+    if (fsm->buffer_handle == NULL) return LFSM_ERROR;
+    return LFSM_OK;
 }
 
-lfsm_t lfsm_init_func(void* user_data) {
+lfsm_t lfsm_init_func(lfsm_transitions_t* transitions, \
+                        int trans_count,\
+                        lfsm_state_functions_t* states,\
+                        int state_count,\
+                        void* user_data) 
+{
     lfsm_t new_fsm = lfsm_get_unused_context();
     if (new_fsm) {
-        new_fsm->user_data = user_data;
-        if (lfsm_initialize_buffers(new_fsm) != NULL) {
+        new_fsm->functions_table = states;
+        new_fsm->state_func_count = state_count;
+        new_fsm->transition_table = transitions;
+        new_fsm->transition_count = trans_count;
+        // if (lfsm_initialize_buffers(new_fsm) == LFSM_OK) {
+            print_transition_table(new_fsm);
             lfsm_bubble_sort_list(new_fsm);
-            lfsm_find_state_event_max_min(new_fsm);
-            if (lfsm_create_lookup_table(new_fsm) != NULL) {
-                lfsm_fill_lookup_table(new_fsm)
-                return new_fsm;
-            }
-        }
+            print_transition_table(new_fsm);
+            lfsm_find_state_event_min_max(new_fsm);
+            // if (lfsm_create_lookup_table(new_fsm) == LFSM_OK) {
+            //     lfsm_fill_lookup_table(new_fsm);
+            //     new_fsm->user_data = user_data;
+            //     return new_fsm;
+            // }
+        // }
     }
     return NULL;
+}
+
+lfsm_return_t lfsm_deinit(lfsm_t context) {
+    memset(context, 0, sizeof(lfsm_context_t));
 }
 
 // ----------------------------------------------------------------------------
 
 lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event) {
-    buf_add_element(context->buffer_handle, event);
+    uint8_t error = context->buf_func.add(event);
+    if (error) return LFSM_ERROR;
+    return LFSM_OK;
 }
 
 void swap_elements(lfsm_transitions_t* items, int index_first, int index_second ) {
@@ -118,7 +143,7 @@ uint8_t min(uint8_t a, uint8_t b) {
     return b;
 }
 
-void lfsm_find_state_event_max_min(lfsm_t context) {
+void lfsm_find_state_event_min_max(lfsm_t context) {
     int list_length = context->transition_count;
     lfsm_transitions_t* transition = context->transition_table;
     uint8_t max_state = 0;
@@ -139,13 +164,14 @@ void lfsm_find_state_event_max_min(lfsm_t context) {
     context->event_number_max = max_event;
 }
 
-lfsm_transitions_t* lfsm_create_lookup_table(lfsm_t context) {
+lfsm_return_t lfsm_create_lookup_table(lfsm_t context) {
     uint8_t range_state_numbers = context->state_number_max - context->state_number_min;
     uint8_t range_event_numbers = context->event_number_max - context->event_number_min;
     
     uint32_t max_lookup_elements = range_state_numbers * range_event_numbers;
     context->lookup_table = malloc(max_lookup_elements * sizeof(lfsm_transitions_t*));
-    return context->lookup_table;
+    if (context->lookup_table == NULL) return LFSM_ERROR;
+    return LFSM_OK;
 }
 
 void lfsm_fill_lookup_table(lfsm_t context) {
@@ -166,10 +192,37 @@ void lfsm_fill_lookup_table(lfsm_t context) {
 
         if (last_state != state || last_event != event) {
             // in memory: st0 ev0, st0 ev1, st0 ev2, ..., st1 ev0, st1 ev1, ...
-            int address_offset = (state - state_offset) * state_diff + event - event_offset
-            *(lookup_table + address_offset) = transition;
+            int address_offset = (state - state_offset) * state_diff + event - event_offset;
+            transition = ((lfsm_transitions_t*)((int)lookup_table + address_offset));
             last_event = transition->current_state;
             last_state = transition->event;
         }
     }
 }
+
+int lfsm_always() {
+    return 1;
+}
+
+void* lfsm_user_data(lfsm_t context) {
+    return context->user_data;
+}
+#define TEST
+#ifdef TEST
+lfsm_transitions_t* lfsm_get_transition_table(lfsm_t context) {
+    lfsm_context_t* details = context;
+    return details->transition_table;
+}
+int lfsm_get_transition_count(lfsm_t context) {
+    lfsm_context_t* details = context;
+    return details->transition_count;
+}
+lfsm_state_functions_t* lfsm_get_state_function_table(lfsm_t context) {
+    lfsm_context_t* details = context;
+    return details->functions_table;
+}
+int lfsm_get_state_function_count(lfsm_t context) {
+    lfsm_context_t* details = context;
+    return details->state_func_count;
+}
+#endif

@@ -20,18 +20,12 @@
 #define USE_LOVELY_BUFFER       1
 
 #if (USE_LOVELY_BUFFER)
-// you can use the integrated buffer library ...
 #define buffer_handle_type                   buf_buffer_t
-
 #define BUFFER_OK   BUF_OK
 #else
-// ... or provide your own buffer implementation!
-#define buffer_handle_type                   
-#define add_to_buffer(buffer_handle, value)  
-#define read_from_buffer(buffer_handle)      
-#define buffer_full(buffer_handle)           
-#define buffer_empty(buffer_handle)          
-#define get_buffer(data_array, element_count, element_size)               
-#endif // 
+#warning "Define your buffer system here!"
+#define buffer_handle_type
+#define BUFFER_OK
+#endif
 
 #endif // __LOVELY_FSM_CONFIG_H
