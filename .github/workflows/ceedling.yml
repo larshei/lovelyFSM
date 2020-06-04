@@ -24,6 +24,7 @@ jobs:
       run: |
         git submodule init
         git submodule update
+        ls -l
     - name: Set up Ruby
     # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
     # change this to (see https://github.com/ruby/setup-ruby#versioning):
