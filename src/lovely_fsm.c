@@ -1,5 +1,6 @@
 #include "lovely_fsm.h"
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef TEST
 #include "lovely_fsm_debug.c"
@@ -22,10 +23,10 @@ typedef struct lfsm_context_t {
     lfsm_buf_callbacks_t buf_func;
     buffer_handle_type buffer_handle;
     void*   user_data;
-    lfsm_transitions_t*     transition_table;
-    lfsm_state_functions_t* functions_table;
-    lfsm_transitions_t*     transition_lookup_table;
-    lfsm_state_functions_t* function_lookup_table;
+    lfsm_transitions_t*      transition_table;
+    lfsm_state_functions_t*  functions_table;
+    lfsm_transitions_t**     transition_lookup_table;
+    lfsm_state_functions_t** function_lookup_table;
 } lfsm_context_t;
 
 typedef struct lfsm_system_t {
@@ -49,7 +50,8 @@ lfsm_return_t lfsm_set_context_buf_callbacks(lfsm_t new_fsm, lfsm_buf_callbacks_
 void lfsm_bubble_sort_list(lfsm_t context);
 void lfsm_find_state_event_min_max(lfsm_t context);
 lfsm_return_t lfsm_alloc_lookup_table(lfsm_t context);
-void lfsm_fill_lookup_table(lfsm_t context);
+lfsm_return_t lfsm_fill_transition_lookup_table(lfsm_t context);
+lfsm_return_t lfsm_fill_state_function_lookup_table(lfsm_t context);
 
 // ----------------------------------------------------------------------------
 lfsm_t lfsm_get_unused_context() {
@@ -66,7 +68,7 @@ lfsm_return_t lfsm_set_lovely_buf_callbacks(lfsm_buf_callbacks_t* callbacks) {
     callbacks->init = buf_claim_and_init_buffer;
     callbacks->is_empty = buf_is_empty;
     callbacks->is_full = buf_is_full;
-    callbacks->add = buf_add_element;
+    callbacks->add  = buf_add_element;
     callbacks->read = buf_read_element;
     return LFSM_OK;
 }
@@ -117,7 +119,8 @@ lfsm_t lfsm_init_func(lfsm_transitions_t* transitions, \
             print_transition_table(new_fsm);
             lfsm_find_state_event_min_max(new_fsm);
             if (lfsm_alloc_lookup_table(new_fsm) == LFSM_OK) {
-                lfsm_fill_lookup_table(new_fsm);
+                lfsm_fill_transition_lookup_table(new_fsm);
+                lfsm_fill_state_function_lookup_table(new_fsm);
                 print_transition_lookup_table(new_fsm);
             //     new_fsm->user_data = user_data;
             //     return new_fsm;
@@ -132,11 +135,11 @@ lfsm_return_t lfsm_deinit(lfsm_t context) {
     free(fsm->transition_lookup_table);
     free(fsm->function_lookup_table);
     memset((unsigned char*)context, 0, sizeof(lfsm_context_t));
+    return LFSM_OK;
 }
 
 // ----------------------------------------------------------------------------
-
-lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event) {
+lfsm_return_t fsm_add_event(lfsm_t context, DATA_TYPE event) {
     uint8_t error = context->buf_func.add(context->buffer_handle, event);
     if (error) return LFSM_ERROR;
     return LFSM_OK;
@@ -205,84 +208,66 @@ lfsm_return_t lfsm_alloc_lookup_table(lfsm_t context) {
     uint8_t range_event_numbers = context->event_number_max - context->event_number_min + 1;
     
     uint32_t max_lookup_elements = range_state_numbers * range_event_numbers;
-    printf("reserving memory for %d lookup elements...\n", max_lookup_elements);
-    
+    printf("reserving memory for %d transition lookup elements...\n", max_lookup_elements);
     context->transition_lookup_table = malloc(max_lookup_elements * sizeof(lfsm_transitions_t*));
     if (context->transition_lookup_table == NULL) {
         return LFSM_ERROR;
     }
+    printf("OK, reserved @%u!\n", (int)context->transition_lookup_table);
+    printf("reserving memory for %d function lookup elements...\n", range_state_numbers);
     context->function_lookup_table = malloc(range_state_numbers * sizeof(lfsm_state_functions_t*));
     if (context->function_lookup_table == NULL) {
         free(context->transition_lookup_table);
         return LFSM_ERROR;
     }
-    printf("OK!\n");
+    printf("OK, reserved @%u!\n", (int)context->function_lookup_table);
     return LFSM_OK;
 }
 
-void lfsm_fill_lookup_table(lfsm_t context) {
-    printf("Creating lookup table\n");
-    int list_length = context->transition_count;
-    printf("List length: %d\n", list_length);
-    uint8_t state_offset = context->state_number_min;
-    uint8_t state_count  = context->state_number_max - state_offset + 1;
-    uint8_t event_offset = context->event_number_min;
-    uint8_t event_count  = context->event_number_max - event_offset + 1;
-    lfsm_transitions_t* transition = context->transition_table;
-    lfsm_transitions_t** transition_lookup_table = &context->transition_lookup_table;
-    lfsm_state_functions_t** function_lookup_table = &context->function_lookup_table;
+lfsm_return_t lfsm_fill_transition_lookup_table(lfsm_t context) {
+    int transition_count = lfsm_get_transition_count(context);
+    lfsm_transitions_t* transition = lfsm_get_transition_table(context);
+    lfsm_transitions_t** transition_lookup = lfsm_get_transition_lookup_table(context);
+    uint8_t current_state, last_state, current_event, last_event;
 
-    // make sure the first element always detects a change.
-    uint8_t last_state = transition->current_state + 1;
-    uint8_t last_event = transition->event + 1;
-    uint8_t state, event;
-    const uint8_t pointer_size = sizeof(lfsm_transitions_t*);
+    if ((transition == NULL) || (transition_lookup == 0)) return LFSM_ERROR;
 
-    printf("Creating transition lookup table @%u for %d states/%d events elements\n", (int)context, state_count, event_count);
-    for (int istate = state_offset ; istate < state_count + state_offset ; istate++ ){
-    for (int ievent = event_offset ; ievent < event_count + event_offset ; ievent++ ){
-        // check if this transition exists
-        state = transition->current_state;
-        event = transition->event;
+    // fill first element
+    *transition_lookup = transition;
+    last_state = transition->current_state;
+    last_event = transition->event;
+    transition_lookup++;
+    transition++;
 
-        if ((state == istate) && (event == ievent)) {
-            if ((last_state != state) || (last_event != event)) {
-                printf("Assigning transition @%u to lookup @%u\n", transition, *transition_lookup_table);
-                *transition_lookup_table = transition;
-            }
+    // fill other elements
+    for (int i = 1 ; i < transition_count ; i++) {
+        current_state = transition->current_state;
+        current_event = transition->event;
+        if ((last_state != current_state) || (last_event != current_event)) {
+            *transition_lookup = transition;
+            transition_lookup++;
             last_state = transition->current_state;
             last_event = transition->event;
-            int state_event_identical;
-            do {
-                transition++;
-                state = transition->current_state;
-                event = transition->event;
-                state_event_identical = (state == istate) && (event == ievent);
-            } while(state_event_identical);
-        } else {
-            printf("Assigning transition @%ul to lookup @%ul\n", NULL, transition_lookup_table);
-            *transition_lookup_table = NULL;
         }
-        transition_lookup_table++;
+        transition++;
     }
-    }
-
-    // for (int i = 0; i < list_length ; i++, transition++) {
-    //     state = transition->current_state;
-    //     event = transition->event;
-    //     printf("\ntransition %d, state %d, event %d. Previous: %d, %d\n", i, state, event, last_state, last_event);
-
-    //     if ((last_state != state) || (last_event != event)) {
-    //         // in memory: st0 ev0, st0 ev1, st0 ev2, ..., st1 ev0, st1 ev1, ...
-    //         int address_offset = (state - state_offset) * event_count + event - event_offset;
-    //         printf("Lookup address for state %d, event %d: %u\n", state, event, ((int)transition_lookup_table + pointer_size*address_offset));
-    //         lookup_writer = (lfsm_transitions_t*)((int)transition_lookup_table + (address_offset)*pointer_size);
-    //         printf("Lookup writer address %u\n", (int)lookup_writer);
-    //         printf("transition address %u\n", (int)transition);
-    //         lookup_writer = transition;
-    //     }
-    // }
+    return LFSM_OK;
 }
+
+lfsm_return_t lfsm_fill_state_function_lookup_table(lfsm_t context) {
+    lfsm_state_functions_t* state_table;
+    lfsm_state_functions_t** state_lookup_table;
+    uint8_t state_offset;
+
+    state_table = lfsm_get_state_function_table(context);
+    state_offset = lfsm_get_state_min(context);
+    state_lookup_table = lfsm_get_state_function_lookup_table(context);
+
+    *(state_lookup_table + state_table->state - state_offset) = state_table;
+
+    return LFSM_OK;
+}
+
 
 int lfsm_always() {
     return 1;
@@ -301,6 +286,10 @@ int lfsm_get_transition_count(lfsm_t context) {
     lfsm_context_t* details = context;
     return details->transition_count;
 }
+lfsm_transitions_t** lfsm_get_transition_lookup_table(lfsm_t context) {
+    lfsm_context_t* details = context;
+    return details->transition_lookup_table;
+}
 lfsm_state_functions_t* lfsm_get_state_function_table(lfsm_t context) {
     lfsm_context_t* details = context;
     return details->functions_table;
@@ -309,9 +298,9 @@ int lfsm_get_state_function_count(lfsm_t context) {
     lfsm_context_t* details = context;
     return details->state_func_count;
 }
-int lfsm_get_transition_lookup_table(lfsm_t context) {
+lfsm_state_functions_t** lfsm_get_state_function_lookup_table(lfsm_t context) {
     lfsm_context_t* details = context;
-    return details->transition_lookup_table;
+    return details->function_lookup_table;
 }
 int lfsm_get_state_min(lfsm_t context) {
     lfsm_context_t* details = context;

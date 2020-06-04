@@ -50,10 +50,11 @@ typedef buffer_handle_type (*lfsm_buf_init_func_t)(buf_data_info_t*);
 typedef void (*lfsm_buf_sys_init_func_t)();
 typedef buffer_handle_type (*lfsm_buf_init_func_t)(DATA_TYPE*);
 #endif
+
 typedef uint8_t (*lfsm_buf_is_full_func_t)(buffer_handle_type);
 typedef uint8_t (*lfsm_buf_is_empty_func_t)(buffer_handle_type);
 typedef DATA_TYPE* (*lfsm_buf_read_func_t)(buffer_handle_type);
-typedef uint8_t (*lfsm_buf_add_func_t)(buffer_handle_type, DATA_TYPE*);
+typedef uint8_t (*lfsm_buf_add_func_t)(buffer_handle_type, DATA_TYPE);
 
 typedef struct lfsm_buf_callbacks_t {
     lfsm_buf_sys_init_func_t  system_init;
@@ -65,7 +66,7 @@ typedef struct lfsm_buf_callbacks_t {
 } lfsm_buf_callbacks_t;
 
 lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event);
-
+lfsm_return_t lfsm_deinit(lfsm_t context);
 lfsm_t lfsm_init_func(lfsm_transitions_t* transitions, \
                         int trans_count,\
                         lfsm_state_functions_t* states,\
@@ -85,7 +86,8 @@ lfsm_transitions_t* lfsm_get_transition_table(lfsm_t context);
 int lfsm_get_transition_count(lfsm_t context);
 lfsm_state_functions_t* lfsm_get_state_function_table(lfsm_t context);
 int lfsm_get_state_function_count(lfsm_t context);
-int lfsm_get_transition_lookup_table(lfsm_t context);
+lfsm_transitions_t** lfsm_get_transition_lookup_table(lfsm_t context);
+lfsm_state_functions_t** lfsm_get_state_function_lookup_table(lfsm_t context);
 int lfsm_get_state_min(lfsm_t context);
 int lfsm_get_state_max(lfsm_t context);
 int lfsm_get_event_min(lfsm_t context);
