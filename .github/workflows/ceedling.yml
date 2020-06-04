@@ -21,9 +21,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Fetch submodules
-        run: |
-          git submodule init
-          git submodule update
+      run: |
+        git submodule init
+        git submodule update
     - name: Set up Ruby
     # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
     # change this to (see https://github.com/ruby/setup-ruby#versioning):
