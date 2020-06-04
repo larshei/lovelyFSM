@@ -139,7 +139,7 @@ lfsm_return_t lfsm_deinit(lfsm_t context) {
 }
 
 // ----------------------------------------------------------------------------
-lfsm_return_t fsm_add_event(lfsm_t context, DATA_TYPE event) {
+lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event) {
     uint8_t error = context->buf_func.add(context->buffer_handle, event);
     if (error) return LFSM_ERROR;
     return LFSM_OK;
