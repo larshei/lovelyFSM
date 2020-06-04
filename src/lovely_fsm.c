@@ -2,10 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef TEST
-#include "lovely_fsm_debug.c"
-#endif
-
 /* -----------------------------------------------------------------------------
  * Managed internally, user needs lfsm_context_t (pointer) only
  * -------------------------------------------------------------------------- */
@@ -112,20 +108,17 @@ lfsm_t lfsm_init_func(lfsm_transitions_t* transitions, \
         new_fsm->state_func_count = state_count;
         new_fsm->transition_table = transitions;
         new_fsm->transition_count = trans_count;
-        // lfsm_set_context_buf_callbacks(new_fsm, buffer_callbacks);
-        // if (lfsm_initialize_buffers(new_fsm) == LFSM_OK) {
-            print_transition_table(new_fsm);
+        lfsm_set_context_buf_callbacks(new_fsm, buffer_callbacks);
+        if (lfsm_initialize_buffers(new_fsm) == LFSM_OK) {
             lfsm_bubble_sort_list(new_fsm);
-            print_transition_table(new_fsm);
             lfsm_find_state_event_min_max(new_fsm);
             if (lfsm_alloc_lookup_table(new_fsm) == LFSM_OK) {
                 lfsm_fill_transition_lookup_table(new_fsm);
                 lfsm_fill_state_function_lookup_table(new_fsm);
-                print_transition_lookup_table(new_fsm);
-            //     new_fsm->user_data = user_data;
-            //     return new_fsm;
+                new_fsm->user_data = user_data;
+                return new_fsm;
             }
-        // }
+        }
     }
     return NULL;
 }
@@ -208,19 +201,15 @@ lfsm_return_t lfsm_alloc_lookup_table(lfsm_t context) {
     uint8_t range_event_numbers = context->event_number_max - context->event_number_min + 1;
     
     uint32_t max_lookup_elements = range_state_numbers * range_event_numbers;
-    printf("reserving memory for %d transition lookup elements...\n", max_lookup_elements);
     context->transition_lookup_table = malloc(max_lookup_elements * sizeof(lfsm_transitions_t*));
     if (context->transition_lookup_table == NULL) {
         return LFSM_ERROR;
     }
-    printf("OK, reserved @%u!\n", (int)context->transition_lookup_table);
-    printf("reserving memory for %d function lookup elements...\n", range_state_numbers);
     context->function_lookup_table = malloc(range_state_numbers * sizeof(lfsm_state_functions_t*));
     if (context->function_lookup_table == NULL) {
         free(context->transition_lookup_table);
         return LFSM_ERROR;
     }
-    printf("OK, reserved @%u!\n", (int)context->function_lookup_table);
     return LFSM_OK;
 }
 

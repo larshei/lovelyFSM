@@ -5,9 +5,11 @@
  * -------------------------------------------------------------------------- */
 
 #include "unity.h"
+#include <stdio.h>
 #include "../../src/lovely_fsm.h"
 #include "../../lovelyBuffer/buf_buffer.h"
-
+// include last!
+#include "../../src/lovely_fsm_debug.c"
 // -------- User data structures -------------------------------------
 enum {
     LED_OFF,
@@ -161,12 +163,17 @@ void setUp(void) {
     my_data.green_led = LED_OFF;
     buf_init_system();
     lfsm_set_lovely_buf_callbacks(&buffer_callbacks);
-    lfsm_handler = lfsm_init(transition_table, state_func_table, buffer_callbacks, my_data);
-    TEST_ASSERT_NOT_NULL(lfsm_handler);
 }
 
 void tearDown(void) {
     //lfsm_deinit(lfsm_handler);
+}
+
+void test_init_lfsm() {
+    lfsm_handler = lfsm_init(transition_table, state_func_table, buffer_callbacks, my_data);
+    TEST_ASSERT_NOT_NULL(lfsm_handler);
+    print_transition_table(lfsm_handler);
+    print_transition_lookup_table(lfsm_handler);
 }
 
 void test_ignore(void) {
