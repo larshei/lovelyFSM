@@ -77,6 +77,7 @@ lfsm_return_t red_led_off(lfsm_t context);
 // - transition table
 // -------------------------------------------------------------------------
 lfsm_transitions_t transition_table[] = {
+    // STATE      EVENT             CONDITION              TRANSITION TO
     { ST_ALARM  , EV_BUTTON_PRESS , temperature_okay     , ST_NORMAL },
     { ST_NORMAL , EV_MEASURE      , temperature_critical , ST_WARN   },
     { ST_NORMAL , EV_MEASURE      , temperature_warning  , ST_ALARM  },
@@ -87,6 +88,7 @@ lfsm_transitions_t transition_table[] = {
 // - State function table
 // -------------------------------------------------------------------------
 lfsm_state_functions_t state_func_table[] = {
+    // STATE    ON_ENTRY()     ON_RUN()             ON_EXIT()
     {ST_NORMAL, green_led_on , measure_temperature, green_led_off  },
     {ST_WARN  , yellow_led_on, measure_temperature, yellow_led_off },
     {ST_ALARM , red_led_on   , measure_temperature, red_led_off    },

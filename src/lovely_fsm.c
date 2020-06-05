@@ -214,29 +214,35 @@ lfsm_return_t lfsm_alloc_lookup_table(lfsm_t context) {
 }
 
 lfsm_return_t lfsm_fill_transition_lookup_table(lfsm_t context) {
-    int transition_count = lfsm_get_transition_count(context);
     lfsm_transitions_t* transition = lfsm_get_transition_table(context);
     lfsm_transitions_t** transition_lookup = lfsm_get_transition_lookup_table(context);
-    uint8_t current_state, last_state, current_event, last_event;
-
+    uint8_t current_state, previous_state, current_event, previous_event;
+    uint8_t state_count, event_count, state_offset, event_offset;
+    uint16_t table_size;
+    int transition_count, address_offset, differs_from_previous_transition;
+    
     if ((transition == NULL) || (transition_lookup == 0)) return LFSM_ERROR;
 
-    // fill first element
-    *transition_lookup = transition;
-    last_state = transition->current_state;
-    last_event = transition->event;
-    transition_lookup++;
-    transition++;
+    transition_count = lfsm_get_transition_count(context);
+    state_offset = lfsm_get_state_min(context);
+    state_count  = lfsm_get_state_max(context) - state_offset + 1;
+    event_offset = lfsm_get_event_min(context);
+    event_count  = lfsm_get_event_max(context) - event_offset + 1;
+    table_size   = state_count * event_count;
+    previous_state = transition->current_state + 1;
+    previous_event = transition->event + 1;
 
     // fill other elements
-    for (int i = 1 ; i < transition_count ; i++) {
+    for (int i = 0 ; i < transition_count ; i++) {
         current_state = transition->current_state;
         current_event = transition->event;
-        if ((last_state != current_state) || (last_event != current_event)) {
-            *transition_lookup = transition;
-            transition_lookup++;
-            last_state = transition->current_state;
-            last_event = transition->event;
+        differs_from_previous_transition = (previous_state != current_state) || (previous_event != current_event);
+
+        if (differs_from_previous_transition) {
+            address_offset = (current_state - state_offset) * event_count + current_event - event_offset;
+            *(transition_lookup + address_offset) = transition;
+            previous_state = transition->current_state;
+            previous_event = transition->event;
         }
         transition++;
     }
