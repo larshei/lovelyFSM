@@ -42,3 +42,36 @@ void print_transition_lookup_table(lfsm_t context) {
         printf("\n");
     }
 }
+
+void print_state_function_table(lfsm_t context) {
+    lfsm_state_functions_t* table = lfsm_get_state_function_table(context);
+    uint8_t state_func_count = lfsm_get_state_func_count(context);
+
+    printf("\nState function Table for LFSM @%d\n", (int)context);
+    printf("|       |          ADDR |    ON_ENTRY() |      ON_RUN() |     ON_EXIT() |\n");
+    printf("|-STATE-|---------------------------------------------------------------|\n");
+    for (int i = 0 ; i < state_func_count ; i++) {
+        printf("| %5u | %13u | %13u | %13u | %13u |\n", table->state,\
+                                                (int)table,\
+                                                (int)table->on_entry,\
+                                                (int)table->on_run,\
+                                                (int)table->on_exit);
+        table++;
+    }
+    printf("|-----------------------------------------------------------------------|\n");
+}
+
+void print_state_function_lookup_table(lfsm_t context) {
+    lfsm_state_functions_t** lookup_table = lfsm_get_state_function_lookup_table(context);
+    uint8_t state_min = lfsm_get_state_min(context);
+    uint8_t state_max = lfsm_get_state_max(context);
+
+    printf("\nState function Lookup for LFSM @%d\n", (int)context);
+    printf("|       |          ADDR |\n");
+    printf("|-STATE-|---------------|\n");
+    for (int i = state_min ; i <= state_max ; i++) {
+        printf("| %5u | %13u |\n", i, (int)lfsm_get_state_function(context, i));
+        lookup_table++;
+    }
+    printf("|------------------------|\n");
+}

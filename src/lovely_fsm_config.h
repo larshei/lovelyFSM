@@ -19,6 +19,16 @@
 // --- buffer functions ---
 #define USE_LOVELY_BUFFER       1
 
+// --- Optimize for code and ram size or optimize for speed?
+// --- OPTIMIZE_FOR_MEMORY will use only the transition and function tables and
+// --- search for event/state pairs using a for loop. This leads to
+// --- inconsistent and longer execution time.
+// --- OPTIMIZE_FOR_SPEED will sort the transition and function tables and
+// --- create a lookup table for each. (size: pointer_size * events * states +
+// --- pointer_size * state_count). Then, for each run, only the coresponding 
+// --- transitions and their conditions are evaluated.
+
+
 #if (USE_LOVELY_BUFFER)
 #define buffer_handle_type                   buf_buffer_t
 #define BUFFER_OK   BUF_OK

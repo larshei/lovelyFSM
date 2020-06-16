@@ -12,9 +12,12 @@
 typedef struct lfsm_context_t* lfsm_t;
 typedef enum lfsm_return_t {
     LFSM_OK,
+    LFSM_NOP,
     LFSM_MORE_QUEUED,
     LFSM_ERROR,
 } lfsm_return_t;
+
+#define LFSM_INVALID  0xFE
 
 /* -----------------------------------------------------------------------------
  *  For convenience
@@ -67,6 +70,8 @@ typedef struct lfsm_buf_callbacks_t {
 
 lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event);
 lfsm_return_t lfsm_deinit(lfsm_t context);
+lfsm_return_t lfsm_run(lfsm_t context);
+
 lfsm_t lfsm_init_func(lfsm_transitions_t* transitions, \
                         int trans_count,\
                         lfsm_state_functions_t* states,\
@@ -84,6 +89,7 @@ lfsm_return_t lfsm_set_lovely_buf_callbacks(lfsm_buf_callbacks_t* callbacks);
 #ifdef TEST
 lfsm_transitions_t* lfsm_get_transition_table(lfsm_t context);
 int lfsm_get_transition_count(lfsm_t context);
+lfsm_state_functions_t* lfsm_get_state_function(struct lfsm_context_t* fsm, uint8_t state);
 lfsm_state_functions_t* lfsm_get_state_function_table(lfsm_t context);
 int lfsm_get_state_function_count(lfsm_t context);
 lfsm_transitions_t** lfsm_get_transition_lookup_table(lfsm_t context);
@@ -92,7 +98,13 @@ int lfsm_get_state_min(lfsm_t context);
 int lfsm_get_state_max(lfsm_t context);
 int lfsm_get_event_min(lfsm_t context);
 int lfsm_get_event_max(lfsm_t context);
-
+uint8_t lfsm_get_state(lfsm_t context);
+uint8_t lfsm_set_state(lfsm_t context, uint8_t state);
+uint8_t lfsm_get_state_func_count(lfsm_t context);
+lfsm_transitions_t* lfsm_get_transition_from_lookup(lfsm_t context, uint8_t event);
+uint8_t lfsm_read_event_queue_element(lfsm_t context, uint8_t index);
+uint8_t lfsm_no_event_queued(struct lfsm_context_t* fsm);
+uint8_t lfsm_read_event(lfsm_t context);
 #endif
 
 
