@@ -110,53 +110,53 @@ int temperature_okay(lfsm_t context) {
 
 int temperature_warning(lfsm_t context) {
     my_data_t* data = (my_data_t*)lfsm_user_data(context);
-    int higher_than_okay = data->temperature > WARN_TEMP;
-    int not_critical     = data->temperature <= ALARM_TEMP;
+    int higher_than_okay = data->temperature >= WARN_TEMP;
+    int not_critical     = data->temperature < ALARM_TEMP;
     return (higher_than_okay && not_critical);
 }
 
 int temperature_critical(lfsm_t context) {
     my_data_t* data = (my_data_t*)lfsm_user_data(context);
-    return data->temperature > ALARM_TEMP;
+    return data->temperature >= ALARM_TEMP;
 }
 
 // --- State functions ---
 
 lfsm_return_t alarm_entry(lfsm_t context){
-    printf("Running %s\n", __func__);
     my_data.alarm_entry_run_count++;
+    return LFSM_OK;
 }
 lfsm_return_t alarm_run(lfsm_t context){
-    printf("Running %s\n", __func__);
     my_data.alarm_run_run_count++;
+    return LFSM_OK;
 }
 lfsm_return_t alarm_exit(lfsm_t context){
-    printf("Running %s\n", __func__);
     my_data.alarm_exit_run_count++;
+    return LFSM_OK;
 }
 lfsm_return_t warn_entry(lfsm_t context){
-    printf("Running %s\n", __func__);
     my_data.warn_entry_run_count++;
+    return LFSM_OK;
 }
 lfsm_return_t warn_run(lfsm_t context){
-    printf("Running %s\n", __func__);
     my_data.warn_run_run_count++;
+    return LFSM_OK;
 }
 lfsm_return_t warn_exit(lfsm_t context){
-    printf("Running %s\n", __func__);
     my_data.warn_exit_run_count++;
+    return LFSM_OK;
 }
 lfsm_return_t normal_entry(lfsm_t context){
-    printf("Running %s\n", __func__);
     my_data.normal_entry_run_count++;
+    return LFSM_OK;
 }
 lfsm_return_t normal_run(lfsm_t context){
-    printf("Running %s\n", __func__);
     my_data.normal_run_run_count++;
+    return LFSM_OK;
 }
 lfsm_return_t normal_exit(lfsm_t context){
-    printf("Running %s\n", __func__);
     my_data.normal_exit_run_count++;
+    return LFSM_OK;
 }
 
 
@@ -290,4 +290,7 @@ void test_run_transitions( void ) {
     my_data.temperature = WARN_TEMP + 5; // should go to warn!
     lfsm_run(lfsm_handler);
     TEST_ASSERT_EQUAL(ST_WARN, lfsm_get_state(lfsm_handler));
+    TEST_ASSERT_EQUAL(1, my_data.normal_exit_run_count);
+    TEST_ASSERT_EQUAL(1, my_data.warn_entry_run_count);
+    TEST_ASSERT_EQUAL(1, my_data.warn_run_run_count);
 }
