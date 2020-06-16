@@ -1,6 +1,6 @@
 #ifndef __BUFFER_USER_CONFIG
 #define __BUFFER_USER_CONFIG
 
-#define DATA_TYPE           uint32_t
+#define DATA_TYPE           uint8_t
 
 #endif
