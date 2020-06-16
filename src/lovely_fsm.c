@@ -329,7 +329,7 @@ uint8_t lfsm_get_next_event(lfsm_context_t* fsm) {
     uint8_t next_event;
     int out_of_bounds;
 
-    next_event = *fsm->buf_func.read(fsm->buffer_handle);
+    next_event = fsm->buf_func.read(fsm->buffer_handle);
     out_of_bounds = (next_event > fsm->event_number_max) || (next_event < fsm->event_number_min);
     if (out_of_bounds) {
         return LFSM_INVALID;
@@ -519,7 +519,7 @@ uint8_t lfsm_read_event_queue_element(lfsm_t context, uint8_t index) {
 }
 uint8_t lfsm_read_event(lfsm_t context) {
     lfsm_context_t* details = context;
-    uint8_t next_event = *details->buf_func.read(details->buffer_handle);
+    uint8_t next_event = details->buf_func.read(details->buffer_handle);
     return next_event;
 }
 #endif

@@ -169,14 +169,16 @@ void setUp(void) {
     memset((char*)&my_data, 0, sizeof(my_data_t));
     buf_init_system();
     lfsm_set_lovely_buf_callbacks(&buffer_callbacks);
+    lfsm_handler = lfsm_init(transition_table, state_func_table, buffer_callbacks, my_data);
+    TEST_ASSERT_NOT_NULL(lfsm_handler);
+
 }
 
 void tearDown(void) {
-    //lfsm_deinit(lfsm_handler);
+    lfsm_deinit(lfsm_handler);
 }
 
 void test_init_lfsm() {
-    lfsm_handler = lfsm_init(transition_table, state_func_table, buffer_callbacks, my_data);
     TEST_ASSERT_NOT_NULL(lfsm_handler);
     print_transition_table(lfsm_handler);
     print_transition_lookup_table(lfsm_handler);
@@ -229,7 +231,7 @@ void test_get_transition_address_from_lookup( void ) {
             }
 
             transition_from_lookup = lfsm_get_transition_from_lookup(lfsm_handler, event);
-            TEST_ASSERT_EQUAL(transition_temporary, transition_from_lookup);
+            TEST_ASSERT_EQUAL((int)transition_temporary, (int)transition_from_lookup);
         }
     }
     lfsm_set_state(lfsm_handler, ST_NORMAL);
@@ -238,6 +240,14 @@ void test_get_transition_address_from_lookup( void ) {
 void test_no_event_queued_at_start( void ) {
     TEST_ASSERT_EQUAL(1, lfsm_no_event_queued(lfsm_handler));
 }
+
+
+void test_run_with_no_events( void ) {
+    lfsm_return_t ret = lfsm_run(lfsm_handler);
+    TEST_ASSERT_EQUAL(1, lfsm_no_event_queued(lfsm_handler));
+    TEST_ASSERT_EQUAL(LFSM_NOP, ret);
+}
+
 
 void test_add_event_to_buffer_and_read( void ) {
     uint8_t event;
@@ -258,12 +268,6 @@ void test_add_event_to_buffer_and_read( void ) {
     TEST_ASSERT_EQUAL(EV_BUTTON_PRESS, event);
     event = lfsm_read_event(lfsm_handler);
     TEST_ASSERT_EQUAL(EV_BUTTON_PRESS, event);
-}
-
-void test_run_with_no_events( void ) {
-    lfsm_return_t ret = lfsm_run(lfsm_handler);
-    TEST_ASSERT_EQUAL(1, lfsm_no_event_queued(lfsm_handler));
-    TEST_ASSERT_EQUAL(LFSM_NOP, ret);
 }
 
 void test_run_transitions( void ) {
