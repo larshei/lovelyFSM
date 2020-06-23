@@ -2,7 +2,7 @@
 #define __LOVELY_FSM_H
 
 #define ARRAYSIZE(array) (sizeof(array)/sizeof(array[0]))
-#define lfsm_init(transition_table, state_table, buf_callbacks, user_data) lfsm_init_func(&transition_table[0], ARRAYSIZE(transition_table), &state_table[0], ARRAYSIZE(state_table), buf_callbacks, &user_data)
+#define lfsm_init(transition_table, state_table, buf_callbacks, user_data, initial_state) lfsm_init_func(&transition_table[0], ARRAYSIZE(transition_table), &state_table[0], ARRAYSIZE(state_table), buf_callbacks, user_data, initial_state)
 // --------------------------------------------
 #include <stdint.h>
 #include "lovely_fsm_config.h"
@@ -56,7 +56,7 @@ typedef buffer_handle_type (*lfsm_buf_init_func_t)(DATA_TYPE*);
 
 typedef uint8_t (*lfsm_buf_is_full_func_t)(buffer_handle_type);
 typedef uint8_t (*lfsm_buf_is_empty_func_t)(buffer_handle_type);
-typedef DATA_TYPE* (*lfsm_buf_read_func_t)(buffer_handle_type);
+typedef DATA_TYPE (*lfsm_buf_read_func_t)(buffer_handle_type);
 typedef uint8_t (*lfsm_buf_add_func_t)(buffer_handle_type, DATA_TYPE);
 
 typedef struct lfsm_buf_callbacks_t {
@@ -77,9 +77,11 @@ lfsm_t lfsm_init_func(lfsm_transitions_t* transitions, \
                         lfsm_state_functions_t* states,\
                         int state_count,\
                         lfsm_buf_callbacks_t buffer_callbacks, \
-                        void* user_data);
+                        void* user_data, \
+                        uint8_t initial_state);
 
 void* lfsm_user_data(lfsm_t context);
+uint8_t lfsm_get_state(lfsm_t context);
 
 
 #ifdef USE_LOVELY_BUFFER
@@ -98,7 +100,6 @@ int lfsm_get_state_min(lfsm_t context);
 int lfsm_get_state_max(lfsm_t context);
 int lfsm_get_event_min(lfsm_t context);
 int lfsm_get_event_max(lfsm_t context);
-uint8_t lfsm_get_state(lfsm_t context);
 uint8_t lfsm_set_state(lfsm_t context, uint8_t state);
 uint8_t lfsm_get_state_func_count(lfsm_t context);
 lfsm_transitions_t* lfsm_get_transition_from_lookup(lfsm_t context, uint8_t event);

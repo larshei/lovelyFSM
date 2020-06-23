@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "lovely_fsm.h"
 
+#ifdef TEST
+
 void print_transition_table(lfsm_t context) {
     lfsm_transitions_t* transition = lfsm_get_transition_table(context);
     lfsm_state_functions_t* state_functions = lfsm_get_state_function_table(context);
@@ -75,3 +77,5 @@ void print_state_function_lookup_table(lfsm_t context) {
     }
     printf("|------------------------|\n");
 }
+
+#endif
