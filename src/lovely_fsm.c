@@ -400,7 +400,7 @@ lfsm_return_t lfsm_run_all_callbacks(lfsm_context_t* fsm) {
             lfsm_run_callback(fsm, callbacks_current->on_run);
         }
     }
-    return callbacks_current;
+    return LFSM_OK;
 }
 
 uint8_t lfsm_no_event_queued(lfsm_context_t* fsm) {
