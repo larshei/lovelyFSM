@@ -169,7 +169,7 @@ void setUp(void) {
     memset((char*)&my_data, 0, sizeof(my_data_t));
     buf_init_system();
     lfsm_set_lovely_buf_callbacks(&buffer_callbacks);
-    lfsm_handler = lfsm_init(transition_table, state_func_table, buffer_callbacks, &my_data);
+    lfsm_handler = lfsm_init(transition_table, state_func_table, buffer_callbacks, &my_data, ST_NORMAL);
     TEST_ASSERT_NOT_NULL(lfsm_handler);
 
 }
