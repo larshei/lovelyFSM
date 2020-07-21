@@ -45,6 +45,7 @@ lfsm_return_t lfsm_initialize_buffers(lfsm_t fsm);
 lfsm_return_t lfsm_set_context_buf_callbacks(lfsm_t context, lfsm_buf_callbacks_t buffer_callbacks);
 lfsm_return_t lfsm_set_context_buf_callbacks(lfsm_t new_fsm, lfsm_buf_callbacks_t buffer_callbacks);
 
+lfsm_return_t lfsm_run_entry_callback(lfsm_context_t* fsm);
 void lfsm_bubble_sort_list(lfsm_t context);
 void lfsm_find_state_event_min_max_count(lfsm_t context);
 lfsm_return_t lfsm_alloc_lookup_table(lfsm_t context);
@@ -94,6 +95,7 @@ lfsm_t lfsm_init_func(lfsm_transitions_t* transitions, \
                 lfsm_fill_transition_lookup_table(new_fsm);
                 lfsm_fill_state_function_lookup_table(new_fsm);
                 new_fsm->user_data = user_data;
+                lfsm_run_entry_callback(new_fsm);
                 return new_fsm;
             }
         }
