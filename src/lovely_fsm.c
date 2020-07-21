@@ -127,10 +127,13 @@ lfsm_return_t lfsm_run(lfsm_t context) {
     uint8_t next_event = lfsm_get_next_event(fsm);
 
     lfsm_transitions_t* transition;
-    transition = lfsm_get_transition_from_lookup(context, next_event);
+    transition = lfsm_get_transition_from_lookup(fsm, next_event);
 
     if (transition != NULL) {
-        transition = lfsm_find_transition_to_execute(context, transition, next_event);
+        transition = lfsm_find_transition_to_execute(fsm, transition, next_event);
+        if (transition == NULL) {
+            return LFSM_NOP;
+        }
         if (transition != NULL) {
             lfsm_execute_transition(fsm, transition);
         }
@@ -323,6 +326,11 @@ lfsm_transitions_t* lfsm_get_transition_from_lookup(lfsm_context_t* fsm, uint8_t
     lfsm_transitions_t* transition_pointer;
     int lookup_entry_number;
 
+    int out_of_bounds = (event > fsm->event_number_max) || (event < fsm->event_number_min);
+    if (out_of_bounds) {
+        return NULL;
+    }
+
     uint8_t current_state = fsm->current_state;
     uint8_t state_offset = fsm->state_number_min;
     uint8_t event_offset = fsm->event_number_min;
@@ -467,6 +475,8 @@ lfsm_return_t lfsm_alloc_lookup_table(lfsm_t context) {
         free(context->transition_lookup_table);
         return LFSM_ERROR;
     }
+    memset(context->transition_lookup_table , 0, max_lookup_elements * sizeof(lfsm_transitions_t*));
+    memset(context->transition_lookup_table , 0, range_state_numbers * sizeof(lfsm_state_functions_t*));
     return LFSM_OK;
 }
 

@@ -171,7 +171,6 @@ void setUp(void) {
     lfsm_set_lovely_buf_callbacks(&buffer_callbacks);
     lfsm_handler = lfsm_init(transition_table, state_func_table, buffer_callbacks, &my_data, ST_NORMAL);
     TEST_ASSERT_NOT_NULL(lfsm_handler);
-
 }
 
 void tearDown(void) {
@@ -270,6 +269,27 @@ void test_add_event_to_buffer_and_read( void ) {
     TEST_ASSERT_EQUAL(EV_BUTTON_PRESS, event);
 }
 
+void test_get_transition_from_lookuo_existing(void) {
+    lfsm_transitions_t* transition;
+    lfsm_set_state(lfsm_handler, ST_NORMAL);
+    transition = lfsm_get_transition_from_lookup(lfsm_handler, EV_MEASURE);
+    TEST_ASSERT_NOT_NULL(transition);
+}
+
+void test_get_transition_from_lookuo_non_existing(void) {
+    lfsm_transitions_t* transition;
+    lfsm_set_state(lfsm_handler, ST_NORMAL);
+    transition = lfsm_get_transition_from_lookup(lfsm_handler, EV_BUTTON_PRESS);
+    TEST_ASSERT_NULL(transition);
+
+    // make sure none of the state functions were run.
+    uint8_t* compare_to_zero = (uint8_t*)&my_data;
+    for (int i = 0 ; i < sizeof(my_data_t) ; i++) {
+        TEST_ASSERT_EQUAL(0, *compare_to_zero);
+    }
+}
+
+
 void test_run_transitions( void ) {
     uint8_t event;
     lfsm_return_t ret;
@@ -297,4 +317,10 @@ void test_run_transitions( void ) {
     TEST_ASSERT_EQUAL(1, my_data.normal_exit_run_count);
     TEST_ASSERT_EQUAL(1, my_data.warn_entry_run_count);
     TEST_ASSERT_EQUAL(1, my_data.warn_run_run_count);
+}
+
+void test_run_non_existing_state_event_combo(void) {
+    lfsm_set_state(lfsm_handler, ST_NORMAL);
+    fsm_add_event(lfsm_handler, EV_BUTTON_PRESS);
+    // lfsm_run(lfsm_handler);
 }
