@@ -324,17 +324,17 @@ void lfsm_bubble_sort_list(lfsm_t context) {
 lfsm_transitions_t* lfsm_get_transition_from_lookup(lfsm_context_t* fsm, uint8_t event) {
     lfsm_transitions_t** transition_table = fsm->transition_lookup_table;
     lfsm_transitions_t* transition_pointer;
-    int lookup_entry_number;
+    uint16_t lookup_entry_number;
 
     int out_of_bounds = (event > fsm->event_number_max) || (event < fsm->event_number_min);
     if (out_of_bounds) {
         return NULL;
     }
 
-    uint8_t current_state = fsm->current_state;
-    uint8_t state_offset = fsm->state_number_min;
-    uint8_t event_offset = fsm->event_number_min;
-    uint8_t event_count  = fsm->event_count;
+    uint16_t current_state = fsm->current_state;
+    uint16_t state_offset = fsm->state_number_min;
+    uint16_t event_offset = fsm->event_number_min;
+    uint16_t event_count = fsm->event_count;
     lookup_entry_number = (current_state - state_offset) * event_count + event - event_offset;
     transition_pointer = *(transition_table + lookup_entry_number);
     return transition_pointer;
