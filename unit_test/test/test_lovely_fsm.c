@@ -433,11 +433,13 @@ void test_run_transitions( void ) {
     fsm_add_event(lfsm_handler, EV_MEASURE);
     my_data.temperature = WARN_TEMP - 5; // should stay on normal!
     ret = lfsm_run(lfsm_handler);
-    TEST_ASSERT_EQUAL(LFSM_OK, ret);
+    TEST_ASSERT_EQUAL(LFSM_NOP, ret);
     TEST_ASSERT_EQUAL(ST_NORMAL, lfsm_get_state(lfsm_handler));
     TEST_ASSERT_EQUAL(1, my_data.normal_run_run_count);
+    TEST_ASSERT_EQUAL(1, my_data.normal_entry_run_count);
     // all others 0
     my_data.normal_run_run_count = 0;
+    my_data.normal_entry_run_count = 0;
     my_data.temperature = 0;
     TEST_ASSERT_EACH_EQUAL_UINT8(0, &my_data, sizeof(my_data_t));
 
