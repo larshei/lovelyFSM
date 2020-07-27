@@ -51,7 +51,7 @@ lfsm_return_t lfsm_alloc_lookup_table(lfsm_t context);
 lfsm_return_t lfsm_fill_transition_lookup_table(lfsm_t context);
 lfsm_return_t lfsm_fill_state_function_lookup_table(lfsm_t context);
 lfsm_transitions_t* lfsm_get_transition_from_lookup(lfsm_context_t* fsm, uint8_t event);
-lfsm_transitions_t* lfsm_find_transition_to_execute(lfsm_context_t* fsm, lfsm_transitions_t* transition, uint8_t event);
+lfsm_transitions_t* lfsm_find_transition_to_execute(lfsm_context_t* fsm, uint8_t event);
 lfsm_return_t lfsm_execute_transition(lfsm_context_t* fsm, lfsm_transitions_t* transition);
 lfsm_state_functions_t* lfsm_get_state_function(lfsm_context_t* fsm, uint8_t state);
 lfsm_return_t lfsm_run_callback(lfsm_context_t* fsm, lfsm_return_t (*function)());
@@ -88,15 +88,15 @@ lfsm_t lfsm_init_func(lfsm_transitions_t* transitions, \
 
         lfsm_set_context_buf_callbacks(new_fsm, buffer_callbacks);
         if (lfsm_initialize_buffers(new_fsm) == LFSM_OK) {
-            lfsm_bubble_sort_list(new_fsm);
+            // lfsm_bubble_sort_list(new_fsm);
             lfsm_find_state_event_min_max_count(new_fsm);
-            if (lfsm_alloc_lookup_table(new_fsm) == LFSM_OK) {
-                lfsm_fill_transition_lookup_table(new_fsm);
-                lfsm_fill_state_function_lookup_table(new_fsm);
+            // if (lfsm_alloc_lookup_table(new_fsm) == LFSM_OK) {
+            //     lfsm_fill_transition_lookup_table(new_fsm);
+            //     lfsm_fill_state_function_lookup_table(new_fsm);
                 new_fsm->user_data = user_data;
                 lfsm_run_all_callbacks(new_fsm);
                 return new_fsm;
-            }
+            // }
         }
     }
     return NULL;
@@ -119,6 +119,7 @@ lfsm_return_t fsm_add_event(lfsm_t context, uint8_t event) {
 // callback function execution.
 lfsm_return_t lfsm_run(lfsm_t context) {
     lfsm_context_t* fsm = (lfsm_context_t*) context;
+    lfsm_transitions_t* transition;
 
     if (lfsm_no_event_queued(fsm)) {
         return LFSM_NOP;
@@ -126,18 +127,14 @@ lfsm_return_t lfsm_run(lfsm_t context) {
 
     uint8_t next_event = lfsm_get_next_event(fsm);
 
-    lfsm_transitions_t* transition;
-    transition = lfsm_get_transition_from_lookup(fsm, next_event);
-
-    if (transition != NULL) {
-        transition = lfsm_find_transition_to_execute(fsm, transition, next_event);
-        if (transition == NULL) {
-            return LFSM_NOP;
-        }
-        if (transition != NULL) {
-            lfsm_execute_transition(fsm, transition);
-        }
+    transition = lfsm_find_transition_to_execute(fsm, next_event);
+    if (transition == NULL) {
+        return LFSM_NOP;
     }
+    if (transition != NULL) {
+        lfsm_execute_transition(fsm, transition);
+    }
+
     lfsm_run_all_callbacks(fsm);
 
     if (lfsm_no_event_queued(fsm)) {
@@ -340,22 +337,26 @@ lfsm_transitions_t* lfsm_get_transition_from_lookup(lfsm_context_t* fsm, uint8_t
     return transition_pointer;
 }
 
-// runs through the block of transitions for the same state/event and returns
-// the first element with a valid 'condition' function (NULL function is valid)
-lfsm_transitions_t* lfsm_find_transition_to_execute(lfsm_context_t* fsm, lfsm_transitions_t* transition, uint8_t event) {
+// runs through the transition table to find a transition that matches
+// state/event with a 'true' return value on condition.
+lfsm_transitions_t* lfsm_find_transition_to_execute(lfsm_context_t* fsm, uint8_t event) {
     int more_transitions_for_pair;
-    do {
-        if (transition->condition == NULL) {
-            return transition;
+    int state_matches, event_matches;
+
+    lfsm_transitions_t* transition = fsm->transition_table;
+    for (int i = 0 ; i < fsm->transition_count ; i++, transition++) {
+        state_matches = transition->current_state == fsm->current_state;
+        event_matches = transition->event == event;
+
+        if (state_matches && event_matches) {
+            if (transition->condition == NULL) {
+                return transition;
+            }
+            if (transition->condition(fsm)) {
+                return transition;
+            }
         }
-        if (transition->condition(fsm)) {
-            return transition;
-        }
-        transition++;
-        more_transitions_for_pair = \
-                (transition->current_state == fsm->current_state) \
-                &&(transition->event == event);
-    } while (more_transitions_for_pair);
+    }
     return NULL;
 }
 
@@ -368,16 +369,18 @@ lfsm_return_t lfsm_execute_transition(lfsm_context_t* fsm, lfsm_transitions_t* t
 
 lfsm_state_functions_t* lfsm_get_state_function(lfsm_context_t* fsm, uint8_t state) {
     lfsm_state_functions_t* state_functions;
-    int address_offset;
+    int state_count, state_matches;
 
-    if (state <= fsm->state_number_max) {
-        address_offset = state - fsm->state_number_min;
-        state_functions = *(fsm->function_lookup_table + address_offset);
-        return state_functions;
-    } else {
-        asm(" nop");
-        return NULL;
+    state_count = fsm->state_number_max - fsm->state_number_min + 1;
+    state_functions = fsm->functions_table;
+
+    for (int i = 0; i < state_count ; i++, state_functions++) {
+        state_matches = state_functions->state == state;
+        if (state_matches) {
+            return state_functions;
+        }
     }
+    return NULL;
 }
 
 lfsm_return_t lfsm_run_callback(lfsm_context_t* fsm, lfsm_return_t (*function)()) {
@@ -460,82 +463,6 @@ void lfsm_find_state_event_min_max_count(lfsm_t context) {
     context->event_number_max = max_event;
     context->event_count = max_event - min_event + 1;
 }
-
-lfsm_return_t lfsm_alloc_lookup_table(lfsm_t context) {
-    uint8_t range_state_numbers = context->state_number_max - context->state_number_min + 1;
-    uint8_t range_event_numbers = context->event_number_max - context->event_number_min + 1;
-    
-    uint32_t max_lookup_elements = range_state_numbers * range_event_numbers;
-    context->transition_lookup_table = malloc(max_lookup_elements * sizeof(lfsm_transitions_t*));
-    if (context->transition_lookup_table == NULL) {
-        return LFSM_ERROR;
-    }
-    context->function_lookup_table = malloc(range_state_numbers * sizeof(lfsm_state_functions_t*));
-    if (context->function_lookup_table == NULL) {
-        free(context->transition_lookup_table);
-        return LFSM_ERROR;
-    }
-    memset(context->transition_lookup_table , 0, max_lookup_elements * sizeof(lfsm_transitions_t*));
-    memset(context->transition_lookup_table , 0, range_state_numbers * sizeof(lfsm_state_functions_t*));
-    return LFSM_OK;
-}
-
-lfsm_return_t lfsm_fill_transition_lookup_table(lfsm_t context) {
-    lfsm_transitions_t* transition = lfsm_get_transition_table(context);
-    lfsm_transitions_t** transition_lookup = lfsm_get_transition_lookup_table(context);
-    uint8_t current_state, previous_state, current_event, previous_event;
-    uint8_t state_count, event_count, state_offset, event_offset;
-    int transition_count, address_offset, differs_from_previous_transition;
-
-    if ((transition == NULL) || (transition_lookup == 0)) return LFSM_ERROR;
-
-    transition_count = lfsm_get_transition_count(context);
-    state_offset = lfsm_get_state_min(context);
-    state_count  = lfsm_get_state_max(context) - state_offset + 1;
-    event_offset = lfsm_get_event_min(context);
-    event_count  = lfsm_get_event_max(context) - event_offset + 1;
-    // fill with value that is 100% not the value of the first element!
-    previous_state = transition->current_state + 1;
-    previous_event = transition->event + 1;
-
-    // fill other elements
-    for (int i = 0 ; i < transition_count ; i++) {
-        current_state = transition->current_state;
-        current_event = transition->event;
-        differs_from_previous_transition = (previous_state != current_state) || (previous_event != current_event);
-
-        if (differs_from_previous_transition) {
-            address_offset = (current_state - state_offset) * event_count + current_event - event_offset;
-            *(transition_lookup + address_offset) = transition;
-            previous_state = transition->current_state;
-            previous_event = transition->event;
-        }
-        transition++;
-    }
-    return LFSM_OK;
-}
-
-lfsm_return_t lfsm_fill_state_function_lookup_table(lfsm_t context) {
-    lfsm_state_functions_t* state_table;
-    lfsm_state_functions_t** state_lookup_table;
-    uint8_t state_offset;
-    uint8_t state_table_size;
-    uint8_t address_offset;
-
-    state_table = lfsm_get_state_function_table(context);
-    state_offset = lfsm_get_state_min(context);
-    state_lookup_table = lfsm_get_state_function_lookup_table(context);
-    state_table_size = lfsm_get_state_max(context) - state_offset + 1;
-
-    for (int i = 0 ; i < state_table_size ; i++) {
-        address_offset = state_table->state - state_offset;
-        *(state_lookup_table + address_offset) = state_table;
-        state_table++;
-    }
-
-    return LFSM_OK;
-}
-
 
 int lfsm_always() {
     return 1;

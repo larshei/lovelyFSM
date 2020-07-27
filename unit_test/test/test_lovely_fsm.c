@@ -243,17 +243,51 @@ int temperature_critical(lfsm_t context) {
 // --- State functions ---
 
 lfsm_return_t alarm_entry(lfsm_t context){
+    // printf("Running alarm_entry\n");
     my_data.alarm_entry_run_count++;
     return LFSM_OK;
 }
 lfsm_return_t alarm_run(lfsm_t context){
+    // printf("Running alarm_run\n");
     my_data.alarm_run_run_count++;
     return LFSM_OK;
 }
 lfsm_return_t alarm_exit(lfsm_t context){
+    // printf("Running alarm_exit\n");
     my_data.alarm_exit_run_count++;
     return LFSM_OK;
 }
+lfsm_return_t warn_entry(lfsm_t context){
+    // printf("Running warn_entry\n");
+    my_data.warn_entry_run_count++;
+    return LFSM_OK;
+}
+lfsm_return_t warn_run(lfsm_t context){
+    // printf("Running warn_run\n");
+    my_data.warn_run_run_count++;
+    return LFSM_OK;
+}
+lfsm_return_t warn_exit(lfsm_t context){
+    // printf("Running warn_exit\n");
+    my_data.warn_exit_run_count++;
+    return LFSM_OK;
+}
+lfsm_return_t normal_entry(lfsm_t context){
+    // printf("Running normal_entry\n");
+    my_data.normal_entry_run_count++;
+    return LFSM_OK;
+}
+lfsm_return_t normal_run(lfsm_t context){
+    // printf("Running normal_run\n");
+    my_data.normal_run_run_count++;
+    return LFSM_OK;
+}
+lfsm_return_t normal_exit(lfsm_t context){
+    // printf("Running normal_exit\n");
+    my_data.normal_exit_run_count++;
+    return LFSM_OK;
+}
+
 lfsm_return_t generic_entry(lfsm_t context){
     my_data.generic_entry_run_count++;
     return LFSM_OK;
@@ -264,30 +298,6 @@ lfsm_return_t generic_run(lfsm_t context){
 }
 lfsm_return_t generic_exit(lfsm_t context){
     my_data.generic_exit_run_count++;
-    return LFSM_OK;
-}
-lfsm_return_t warn_entry(lfsm_t context){
-    my_data.warn_entry_run_count++;
-    return LFSM_OK;
-}
-lfsm_return_t warn_run(lfsm_t context){
-    my_data.warn_run_run_count++;
-    return LFSM_OK;
-}
-lfsm_return_t warn_exit(lfsm_t context){
-    my_data.warn_exit_run_count++;
-    return LFSM_OK;
-}
-lfsm_return_t normal_entry(lfsm_t context){
-    my_data.normal_entry_run_count++;
-    return LFSM_OK;
-}
-lfsm_return_t normal_run(lfsm_t context){
-    my_data.normal_run_run_count++;
-    return LFSM_OK;
-}
-lfsm_return_t normal_exit(lfsm_t context){
-    my_data.normal_exit_run_count++;
     return LFSM_OK;
 }
 
@@ -312,9 +322,7 @@ void tearDown(void) {
 void test_init_lfsm() {
     TEST_ASSERT_NOT_NULL(lfsm_handler);
     print_transition_table(lfsm_handler);
-    print_transition_lookup_table(lfsm_handler);
     print_state_function_table(lfsm_handler);
-    print_state_function_lookup_table(lfsm_handler);
 }
 
 void test_set_get_state() {
@@ -326,47 +334,6 @@ void test_set_get_state() {
     TEST_ASSERT_EQUAL(ST_WARN, lfsm_get_state(lfsm_handler));
 }
 
-
-
-// (lookup table points to first element of similar state/event transitions in
-// a sorted transition list.
-// All combinations of states/events are checked. For each possible
-// combination, we manually run through the (sorted) transition table, until we
-// find the correct state/event combo. This is the locaton the lookup table
-// should point to 
-void test_get_transition_address_from_lookup( void ) {
-    lfsm_transitions_t* transition_from_lookup;
-    lfsm_transitions_t* transition_temporary;
-    lfsm_transitions_t* transition_for_loop_runner;
-    uint8_t emin = lfsm_get_event_min(lfsm_handler);
-    uint8_t emax = lfsm_get_event_max(lfsm_handler);
-    uint8_t smin = lfsm_get_state_min(lfsm_handler);
-    uint8_t smax = lfsm_get_state_max(lfsm_handler);
-    int transition_count = lfsm_get_transition_count(lfsm_handler);
-
-    for (int state = smin ; state <= smax ; state++) {
-        lfsm_set_state(lfsm_handler, state);
-
-        for (int event = emin ; event <= emax ; event++) {
-            transition_temporary = NULL;
-            transition_for_loop_runner = lfsm_get_transition_table(lfsm_handler);
-
-            for (int transition = 0 ; transition < transition_count ; transition++ ) {
-                if (transition_for_loop_runner->current_state == state) {
-                if (transition_for_loop_runner->event == event) {
-                    transition_temporary = transition_for_loop_runner;
-                    break; // leave loop -> found first transition for state/event
-                }
-                }
-                transition_for_loop_runner++;
-            }
-
-            transition_from_lookup = lfsm_get_transition_from_lookup(lfsm_handler, event);
-            TEST_ASSERT_EQUAL((int)transition_temporary, (int)transition_from_lookup);
-        }
-    }
-    lfsm_set_state(lfsm_handler, ST_NORMAL);
-}
 
 void test_no_event_queued_at_start( void ) {
     TEST_ASSERT_EQUAL(1, lfsm_no_event_queued(lfsm_handler));
@@ -401,33 +368,13 @@ void test_add_event_to_buffer_and_read( void ) {
     TEST_ASSERT_EQUAL(EV_BUTTON_PRESS, event);
 }
 
-void test_get_transition_from_lookuo_existing(void) {
-    lfsm_transitions_t* transition;
-    lfsm_set_state(lfsm_handler, ST_NORMAL);
-    transition = lfsm_get_transition_from_lookup(lfsm_handler, EV_MEASURE);
-    TEST_ASSERT_NOT_NULL(transition);
-}
-
-void test_get_transition_from_lookuo_non_existing(void) {
-    lfsm_transitions_t* transition;
-    lfsm_set_state(lfsm_handler, ST_NORMAL);
-    transition = lfsm_get_transition_from_lookup(lfsm_handler, EV_BUTTON_PRESS);
-    TEST_ASSERT_NULL(transition);
-
-    // make sure none of the state functions were run.
-    uint8_t* compare_to_zero = (uint8_t*)&my_data;
-    for (int i = 0 ; i < sizeof(my_data_t) ; i++) {
-        TEST_ASSERT_EQUAL(0, *compare_to_zero);
-    }
-}
-
 
 void test_run_transitions( void ) {
     uint8_t event;
     lfsm_return_t ret;
 
 
-    printf("\n------------------------\n");
+    // printf("\n------------------------\n");
     // set state, add event, set temperature
     lfsm_set_state(lfsm_handler, ST_NORMAL);
     fsm_add_event(lfsm_handler, EV_MEASURE);
@@ -446,17 +393,20 @@ void test_run_transitions( void ) {
     lfsm_set_state(lfsm_handler, ST_NORMAL);
     fsm_add_event(lfsm_handler, EV_MEASURE);
     my_data.temperature = WARN_TEMP + 5; // should go to warn!
+    TEST_ASSERT_EQUAL(ST_NORMAL, lfsm_get_state(lfsm_handler));
+    // printf("run to transition from NORMAL to WARN...\n");
     lfsm_run(lfsm_handler);
+    // printf("--------------\n");
     TEST_ASSERT_EQUAL(ST_WARN, lfsm_get_state(lfsm_handler));
-    TEST_ASSERT_EQUAL(1, my_data.normal_exit_run_count);
     TEST_ASSERT_EQUAL(1, my_data.warn_entry_run_count);
     TEST_ASSERT_EQUAL(1, my_data.warn_run_run_count);
+    TEST_ASSERT_EQUAL(1, my_data.normal_exit_run_count);
 }
 
 void test_run_non_existing_state_event_combo(void) {
     lfsm_set_state(lfsm_handler, ST_NORMAL);
     fsm_add_event(lfsm_handler, EV_BUTTON_PRESS);
-    // lfsm_run(lfsm_handler);
+    lfsm_run(lfsm_handler);
 }
 
 void test_create_large_second_fsm_instance(void) {
