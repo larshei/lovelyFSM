@@ -1,8 +1,6 @@
 #ifndef __LOVELY_FSM_CONFIG_H
 #define __LOVELY_FSM_CONFIG_H
 
-#include "../lovelyBuffer/buf_buffer.h"
-
 // --- maximum number of state machines (static memory allocation!) ---
 #define LFSM_MAX_COUNT          3
 
@@ -30,6 +28,8 @@
 
 
 #if (USE_LOVELY_BUFFER)
+#include "../lovelyBuffer/buf_buffer.h"
+
 #define buffer_handle_type                   buf_buffer_t
 #define BUFFER_OK   BUF_OK
 #else
