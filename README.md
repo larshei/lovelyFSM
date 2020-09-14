@@ -7,6 +7,8 @@ You can start multiple instances of different or the same state machine.
 A simple example:
 
 ``` C
+// this example assumes you are using lovelyBuffer (shipped with lovelyFSM)
+
 lfsm_transitions_t transition_table[] = {
   // STATE      EVENT             CONDITION              TRANSITION TO
   { ST_NORMAL , EV_MEASURE      , temperature_warning  , ST_WARN   },
@@ -22,6 +24,23 @@ lfsm_state_functions_t state_func_table[] = {
   {ST_WARN   , yellow_led_on , NULL  , all_leds_off },
   {ST_ALARM  , red_led_on    , NULL  , all_leds_off},
 };
+
+lfsm_t lfsm_handle;
+lfsm_buf_callbacks_t buffer_callbacks;
+my_data_t my_data; // whatever data you want to access in state machine functions
+
+int main(void) {
+  buf_init_system();
+  lfsm_set_lovely_buf_callbacks(&buffer_callbacks);
+  
+  lfsm_handle = lfsm_init(transition_table, state_table, buffer_callbacks, (void*)my_data, ST_IDLE);
+  
+  // in main program loop
+  {...}
+  fsm_add_event(lfsm_handle, EV_MEASURE);
+  lfsm_run(lfsm_handle);
+  {...}
+}
 ```
 
 As you can see, this is a state machine that turns an LED green, yellow or red
@@ -35,6 +54,8 @@ There are two versions of this library,
 [lovelyFSM-light](https://github.com/huf-gda/lovelyFSM-light/).
 
 Their usage is the same, but the way they handle data internally differs.
+
+> if you are not sure which version to use, use the light variant.
 
 ### lovelyFSM
 Targeted at execution speed. At initialization, lookup tables for state/event
