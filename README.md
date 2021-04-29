@@ -33,7 +33,7 @@ int main(void) {
   buf_init_system();
   lfsm_set_lovely_buf_callbacks(&buffer_callbacks);
   
-  lfsm_handle = lfsm_init(transition_table, state_table, buffer_callbacks, (void*)my_data, ST_IDLE);
+  lfsm_handle = lfsm_init(transition_table, state_table, buffer_callbacks, (void*)my_data, ST_NORMAL);
   
   // in main program loop
   {...}
